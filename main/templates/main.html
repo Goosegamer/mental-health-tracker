@@ -3,6 +3,7 @@
 {% block title %}PBP Mental Health Tracker{% endblock %}
 
 {% block content %}
+{% include 'navbar.html' %}
     {% if not mood_entries %}
     <p>There are no mood data in the mental health tracker.</p>
     {% else %}
@@ -21,6 +22,20 @@
         <td>{{ mood_entry.time }}</td>
         <td>{{ mood_entry.feelings }}</td>
         <td>{{ mood_entry.mood_intensity }}</td>
+        <td>
+          <a href="{% url 'main:edit_mood' mood_entry.pk %}">
+            <button>
+              Edit
+            </button>
+          </a>
+        </td>
+        <td>
+          <a href="{% url 'main:delete_mood' mood_entry.pk %}">
+            <button>
+              Delete
+            </button>
+          </a>
+      </td>
       </tr>
       {% endfor %}
     </table>
@@ -29,14 +44,14 @@
     <br />
     
     <a href="{% url 'main:create_mood_entry' %}">
+      <button>Add New Mood Entry</button>
+    </a>
 
     <a href="{% url 'main:logout' %}">
       <button>Logout</button>
     </a>
-    <h5>Last login session: {{ last_login }}</h5>
 
-      <button>Add New Mood Entry</button>
-    </a>
+    <h5>Last login session: {{ last_login }}</h5>
 
     <h1>Mental Health Tracker</h1>
 
