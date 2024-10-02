@@ -1,66 +1,200 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}PBP Mental Health Tracker{% endblock %}
 
 {% block content %}
 {% include 'navbar.html' %}
-    {% if not mood_entries %}
-    <p>There are no mood data in the mental health tracker.</p>
-    {% else %}
-    <table>
-      <tr>
-        <th>Mood Name</th>
-        <th>Time</th>
-        <th>Feeling</th>
-        <th>Mood Intensity</th>
-      </tr>
-    
-      {% comment %} This is how to display mood data {% endcomment %} 
-      {% for mood_entry in mood_entries %}
-      <tr>
-        <td>{{ mood_entry.mood }}</td>
-        <td>{{ mood_entry.time }}</td>
-        <td>{{ mood_entry.feelings }}</td>
-        <td>{{ mood_entry.mood_intensity }}</td>
-        <td>
-          <a href="{% url 'main:edit_mood' mood_entry.pk %}">
-            <button>
-              Edit
-            </button>
-          </a>
-        </td>
-        <td>
-          <a href="{% url 'main:delete_mood' mood_entry.pk %}">
-            <button>
-              Delete
-            </button>
-          </a>
-      </td>
-      </tr>
-      {% endfor %}
-    </table>
-    {% endif %}
-    
-    <br />
-    
-    <a href="{% url 'main:create_mood_entry' %}">
-      <button>Add New Mood Entry</button>
+
+<!-- Container for content -->
+<div class="bg-gray-50 min-h-screen p-8">
+  <div id="mood_entry_cards"></div>
+  
+  <!-- Modal for adding mood entry -->
+  <div id="crudModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 w-full flex items-center justify-center bg-gray-800 bg-opacity-50 overflow-x-hidden overflow-y-auto transition-opacity duration-300 ease-out">
+    <div id="crudModalContent" class="relative bg-white rounded-lg shadow-lg w-5/6 sm:w-3/4 md:w-1/2 lg:w-1/3 mx-4 sm:mx-0 transform scale-95 opacity-0 transition-transform transition-opacity duration-300 ease-out">
+      <!-- Modal header -->
+      <div class="flex items-center justify-between p-4 border-b rounded-t bg-indigo-700 text-white">
+        <h3 class="text-xl font-semibold">
+          Add New Mood Entry
+        </h3>
+        <button type="button" class="bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center" id="closeModalBtn">
+          <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+          </svg>
+          <span class="sr-only">Close modal</span>
+        </button>
+      </div>
+      <!-- Modal body -->
+      <div class="px-6 py-4 space-y-6 form-style">
+        <form id="moodEntryForm">
+          <div class="mb-4">
+            <label for="mood" class="block text-sm font-medium text-gray-700">Mood</label>
+            <input type="text" id="mood" name="mood" class="mt-1 block w-full border border-gray-300 rounded-md p-2 hover:border-indigo-700 focus:outline-none focus:border-indigo-500" placeholder="Enter your mood" required>
+          </div>
+          <div class="mb-4">
+            <label for="feelings" class="block text-sm font-medium text-gray-700">Feelings</label>
+            <textarea id="feelings" name="feelings" rows="3" class="mt-1 block w-full h-32 resize-none border border-gray-300 rounded-md p-2 hover:border-indigo-700 focus:outline-none focus:border-indigo-500" placeholder="Describe your feelings" required></textarea>
+          </div>
+          <div class="mb-4">
+            <label for="moodIntensity" class="block text-sm font-medium text-gray-700">Mood Intensity (1-10)</label>
+            <input type="number" id="moodIntensity" name="mood_intensity" min="1" max="10" class="mt-1 block w-full border border-gray-300 rounded-md p-2 hover:border-indigo-700 focus:outline-none focus:border-indigo-500" required>
+          </div>
+        </form>
+      </div>
+      <!-- Modal footer -->
+      <div class="flex justify-end p-4 border-t bg-gray-100 rounded-b">
+        <button type="button" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg mr-2" id="cancelButton">Cancel</button>
+        <button type="submit" id="submitMoodEntry" form="moodEntryForm" class="bg-indigo-700 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Display mood entries or a message if none exist -->
+  {% if mood_entries %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full bg-white border rounded-lg shadow-md">
+        <thead class="bg-indigo-600 text-white">
+          <tr>
+            <th class="py-2 px-4 text-left">Mood Name</th>
+            <th class="py-2 px-4 text-left">Time</th>
+            <th class="py-2 px-4 text-left">Feeling</th>
+            <th class="py-2 px-4 text-left">Mood Intensity</th>
+            <th class="py-2 px-4 text-left">Edit</th>
+            <th class="py-2 px-4 text-left">Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for mood_entry in mood_entries %}
+          <tr class="bg-gray-100 border-b hover:bg-gray-200">
+            <td class="py-2 px-4">{{ mood_entry.mood }}</td>
+            <td class="py-2 px-4">{{ mood_entry.time }}</td>
+            <td class="py-2 px-4">{{ mood_entry.feelings }}</td>
+            <td class="py-2 px-4">{{ mood_entry.mood_intensity }}</td>
+            <td class="py-2 px-4">
+              <a href="{% url 'main:edit_mood' mood_entry.pk %}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+            </td>
+            <td class="py-2 px-4">
+              <a href="{% url 'main:delete_mood' mood_entry.pk %}" class="text-red-600 hover:text-red-900">Delete</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-center text-gray-600 mt-6">No mood entries available.</p>
+  {% endif %}
+
+  <div class="mt-6 flex flex-col md:flex-row md:space-x-4">
+    <!-- Button to add mood entry -->
+    <a href="{% url 'main:create_mood_entry' %}" class="bg-indigo-700 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg text-center mb-4 md:mb-0">
+      Add New Mood Entry
     </a>
-
-    <a href="{% url 'main:logout' %}">
-      <button>Logout</button>
+    <!-- Button to show modal for AJAX entry -->
+    <button data-modal-target="crudModal" data-modal-toggle="crudModal" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg text-center mb-4 md:mb-0" onclick="showModal();">
+      Add New Mood Entry by AJAX
+    </button>
+    <!-- Logout button -->
+    <a href="{% url 'main:logout' %}" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-center">
+      Logout
     </a>
+  </div>
 
-    <h5>Last login session: {{ last_login }}</h5>
+  <!-- User information -->
+  <div class="mt-8">
+    <h5 class="text-lg font-semibold">Last login session:</h5>
+    <p class="text-gray-700">{{ last_login }}</p>
 
-    <h1>Mental Health Tracker</h1>
+    <h1 class="text-2xl font-bold mt-4">Mental Health Tracker</h1>
 
-    <h5>NPM:</h5>
-    <p>{{ npm }}</p>
+    <h5 class="text-lg font-semibold mt-4">NPM:</h5>
+    <p class="text-gray-700">{{ npm }}</p>
 
-    <h5>Name:</h5>
-    <p>{{ name }}</p>
+    <h5 class="text-lg font-semibold mt-4">Name:</h5>
+    <p class="text-gray-700">{{ name }}</p>
 
-    <h5>Class:</h5>
-    <p>{{ class }}</p>
+    <h5 class="text-lg font-semibold mt-4">Class:</h5>
+    <p class="text-gray-700">{{ class }}</p>
+  </div>
+</div>
+
+<!-- JavaScript for handling modal functionality -->
+<script>
+  async function addMoodEntry() {
+    fetch("{% url 'main:add_mood_entry_ajax' %}", {
+      method: "POST",
+      body: new FormData(document.querySelector('#moodEntryForm')),
+    })
+    .then(response => refreshMoodEntries())
+
+    document.getElementById("moodEntryForm").reset(); 
+    document.querySelector("[data-modal-toggle='crudModal']").click();
+
+    return false;
+  }
+
+  async function getMoodEntries() {
+    return fetch("{% url 'main:show_json' %}").then((res) => res.json());
+  }
+
+  async function refreshMoodEntries() {
+    document.getElementById("mood_entry_cards").innerHTML = "";
+    document.getElementById("mood_entry_cards").className = "";
+    const moodEntries = await getMoodEntries();
+    let htmlString = "";
+    let classNameString = "";
+
+    if (moodEntries.length === 0) {
+      classNameString = "flex flex-col items-center justify-center min-h-[24rem] p-6";
+      htmlString = `
+        <div class="flex flex-col items-center justify-center min-h-[24rem] p-6">
+          <img src="{% static 'image/sedih-banget.png' %}" alt="Sad face" class="w-32 h-32 mb-4"/>
+          <p class="text-center text-gray-600 mt-4">No mood data on the mental health tracker yet.</p>
+        </div>
+      `;
+    } else {
+      classNameString = "columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6 w-full";
+      moodEntries.forEach((item) => {
+        const mood = DOMPurify.sanitize(item.fields.mood);
+        const feelings = DOMPurify.sanitize(item.fields.feelings);
+        htmlString += `
+          <div class="relative break-inside-avoid">
+            <!-- Mood entry card content here -->
+          </div>
+        `;
+      });
+    }
+    document.getElementById("mood_entry_cards").className = classNameString;
+    document.getElementById("mood_entry_cards").innerHTML = htmlString;
+  }
+  
+  refreshMoodEntries();
+
+  const modal = document.getElementById('crudModal');
+  const modalContent = document.getElementById('crudModalContent');
+
+  function showModal() {
+    modal.classList.remove('hidden'); 
+    setTimeout(() => {
+      modalContent.classList.remove('opacity-0', 'scale-95');
+      modalContent.classList.add('opacity-100', 'scale-100');
+    }, 50); 
+  }
+
+  function hideModal() {
+    modalContent.classList.remove('opacity-100', 'scale-100');
+    modalContent.classList.add('opacity-0', 'scale-95');
+
+    setTimeout(() => {
+      modal.classList.add('hidden');
+    }, 150); 
+  }
+
+  document.getElementById("cancelButton").addEventListener("click", hideModal);
+  document.getElementById("closeModalBtn").addEventListener("click", hideModal);
+  document.getElementById("submitMoodEntry").onclick = addMoodEntry;
+</script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
+
 {% endblock content %}
